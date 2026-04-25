@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A native macOS companion app for ZMK split keyboards. See per-half battery levels, time-remaining projections, layer activity, and more — all from a quiet menu bar item.
+  A native macOS companion app for ZMK split keyboards. Monitor per-half battery levels, time-remaining projections, layer activity, and more.
 </p>
 
 <p align="center">
@@ -14,14 +14,14 @@
 
 ## What it does
 
-Kibodo pairs with [`kibodo-firmware`](https://github.com/undergroundpost/kibodo-firmware) — a small ZMK module that runs on your dongle and split halves — to surface everything you'd want to know about your wireless keyboard's batteries:
+Kibodo pairs with [`kibodo-firmware`](https://github.com/undergroundpost/kibodo-firmware), a small ZMK module that runs on your dongle and split halves, to surface everything you'd want to know about your wireless keyboard's batteries:
 
 - **Per-half battery levels** with live updates as the dongle reports.
-- **Time-remaining projections** computed from actual discharge history via least-squares regression — robust to noisy single-sample readings.
+- **Time-remaining projections** computed from discharge history via least-squares regression.
 - **Active layer monitoring** that mirrors what your on-dongle display shows.
-- **Long-term battery history** plotted in a clean chart, with auto-scaled time axes (hours up to weeks).
+- **Long-term battery history** plotted in a chart with auto-scaled time axes (hours up to weeks).
 - **Layer usage breakdown** showing how you actually use your keymap, with the dominant layer broken out so the bar chart auto-scales to the layers that matter.
-- **Configurable threshold notifications** for low battery percent and low time-remaining, with hysteresis so you're not spammed.
+- **Configurable threshold notifications** for low battery percent and low time-remaining.
 - **Quiet, lightweight menu bar presence** — designed to consume basically nothing while it sits idle.
 
 ## Features
@@ -41,7 +41,7 @@ The detail view for any keyboard gives you everything in one scroll:
 
 ### Menu bar
 
-Configurable to show only what you want — keyboard icon, active layer, battery percent, or any combination. Battery can be all peripherals or just the lowest. Filled-pill or plain-text styling, light/dark mode aware.
+Configurable to show only what you want: keyboard icon, active layer, battery percent, or any combination. Battery can be all peripherals or just the lowest. Filled-pill or plain-text styling.
 
 <p align="center">
   <img src="docs/images/menu1.png" alt="Menu bar option 1" />
@@ -53,24 +53,22 @@ Configurable to show only what you want — keyboard icon, active layer, battery
 
 ### Notifications
 
-Two independent notification thresholds, each with a "Test" button so you can preview without waiting for your battery to drain:
+Two independent notification thresholds:
 
 <p align="center">
   <img src="docs/images/notifications.png" alt="Notifications settings" width="700" />
 </p>
 
-- **Low battery** — fires once when any peripheral crosses below your chosen percent. Re-arms after the battery rises 3% above the threshold.
-- **Time remaining** — fires once when projected time remaining crosses below your chosen value (minutes / hours / days). Re-arms with 25% hysteresis.
+- **Low battery** fires once when any peripheral crosses below your chosen percent. Re-arms after the battery rises 3% above the threshold.
+- **Time remaining** fires once when projected time remaining crosses below your chosen value (minutes / hours / days). Re-arms with 25% hysteresis.
 
 ### Themes & fonts
 
-Built-in themes (Default, Apple, Pink) plus a fully custom slot — pick any 6 colors for both light and dark mode, with a "Pre-fill from…" menu to start from any built-in palette.
+Built-in themes plus full customization.
 
 <p align="center">
   <img src="docs/images/theme.png" alt="Theme settings" width="700" />
 </p>
-
-Two font options: **Roboto Mono** (the default, monkeytype-feel) or **System** (SF Pro for a native-macOS look). Appearance can be locked to Light, Dark, or follow System.
 
 ### General
 
@@ -78,18 +76,30 @@ Two font options: **Roboto Mono** (the default, monkeytype-feel) or **System** (
   <img src="docs/images/general.png" alt="General settings" width="700" />
 </p>
 
-- **Launch at login** — register the app to run on startup so battery history is logged continuously.
-- **Hide dock icon when no windows are open** — pure menu-bar-only mode.
-- **Disconnect threshold** — how long without a reading before a keyboard is considered offline.
-- **Demo keyboard** — synthetic keyboard with rotating layers and simulated battery drain. Perfect for poking around the UI before you flash the firmware.
+- **Launch at login**: register the app to run on startup so battery history is logged continuously.
+- **Hide dock icon when no windows are open**: menu-bar-only mode.
+- **Disconnect threshold**: how long without a reading before a keyboard is considered offline.
 
 ### Keyboard identification
 
-Right-click any keyboard in the sidebar to assign a layout from the catalog (Corne 5-col / 6-col, Sofle, Kyria, Lily58, Iris, Ferris Sweep, Cantor, A. Dux, Piantor, Chocofi, Totem). The matching physical layout drives the small icons next to each peripheral, the full-keyboard preview in the sidebar, and (optionally) the menu-bar icon. Pick "None" to opt out of custom iconography entirely.
+Right-click any keyboard in the sidebar to assign a layout from the pre-loaded catalog:
+- Corne 5-col / 6-col
+- Sofle
+- Kyria
+- Lily58
+- Iris
+- Ferris Sweep
+- Cantor
+- A. Dux
+- Piantor
+- Chocofi
+- Totem
+
+The matching physical layout drives the small icons next to each peripheral, the full-keyboard preview in the sidebar, and (optionally) the menu-bar icon. Pick "None" to opt out of custom iconography entirely. If your keyboard isn't listed here, it will still work with the app, just without your layout's specific iconography.
 
 ## How it works
 
-Kibodo speaks to a tiny [Zephyr module](https://github.com/undergroundpost/kibodo-firmware) you flash onto your dongle. The module exposes a vendor-defined USB HID interface (Usage Page `0xFF00`) carrying:
+For Kibodo to see your keyboard, you'll need to add [Zephyr module](https://github.com/undergroundpost/kibodo-firmware) to your your dongle's firmware. The module exposes a vendor-defined USB HID interface (Usage Page `0xFF00`) carrying:
 
 - per-peripheral battery percent (Report ID 1)
 - per-peripheral side label (Report ID 2)
@@ -100,7 +110,7 @@ The Mac app connects via IOKit's `IOHIDManager`, persists samples via SwiftData,
 
 ## Status
 
-Personal-use software. The macOS app is paired with [`kibodo-firmware`](https://github.com/undergroundpost/kibodo-firmware) and currently only supports ZMK splits with a USB-connected dongle as the central. Wireless-only / non-dongle setups aren't supported yet.
+The macOS app is paired with [`kibodo-firmware`](https://github.com/undergroundpost/kibodo-firmware) and currently only supports ZMK splits with a USB-connected dongle as the central. Wireless-only / non-dongle setups aren't supported yet.
 
 ## License
 

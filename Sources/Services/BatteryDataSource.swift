@@ -6,7 +6,12 @@ struct BatteryReading: Sendable, Equatable {
     let keyboardVendorID: Int?
     let keyboardProductID: Int?
     let slot: Int
-    let deviceLabel: String
+    /// nil when the data source doesn't yet know a per-peripheral label
+    /// (e.g. firmware hasn't yet read the BLE side label). The manager
+    /// supplies a default at device-creation time and otherwise leaves
+    /// the existing name in place — never an opportunity to clobber a
+    /// known-good name with a placeholder.
+    let deviceLabel: String?
     let percent: Int
     let isCharging: Bool
     let timestamp: Date

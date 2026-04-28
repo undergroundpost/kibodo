@@ -1,7 +1,7 @@
 import Foundation
-import SwiftData
+@preconcurrency import SwiftData
 import SwiftUI
-import AppKit
+@preconcurrency import AppKit
 
 @MainActor
 final class DeviceManager {
@@ -9,7 +9,10 @@ final class DeviceManager {
     private var consumptionTasks: [String: Task<Void, Never>] = [:]
     private var suppressedIDs: [String: String] = [:]
     private var lastSystemWake: Date?
-    private var sleepWakeObserver: NSObjectProtocol?
+    /// Held outside actor isolation so `deinit` (which is nonisolated) can
+    /// remove the observer without crossing actor boundaries. Only mutated on
+    /// the main actor at init time, so the unsafe override is sound.
+    nonisolated(unsafe) private var sleepWakeObserver: NSObjectProtocol?
 
     private static let heartbeatInterval: TimeInterval = 30 * 60
     /// Drops larger than this in a single reading are rejected as ADC glitches.
@@ -147,8 +150,12 @@ final class DeviceManager {
         var mutated = false
 
         if bumpLastSeen(for: device, to: reading.timestamp) { mutated = true }
-        if device.name != reading.deviceLabel {
-            device.name = reading.deviceLabel
+        // Only update name when the data source actually knows one. nil means
+        // "the firmware hasn't told me the label yet" — leave the existing
+        // name in place (it's either the previously-known good name from the
+        // DB, or the slot-based default created in findOrCreateDevice).
+        if let label = reading.deviceLabel, device.name != label {
+            device.name = label
             mutated = true
         }
         if percentChanged {
@@ -392,7 +399,11 @@ final class DeviceManager {
         let device = Device(
             externalID: deviceExternalID,
             slot: reading.slot,
-            name: reading.deviceLabel,
+            // Default to a slot-based name when the firmware hasn't yet
+            // advertised a side label. The next reading carrying a real
+            // label will overwrite this (a real label is never "Peripheral N",
+            // so the equality check in handle() will see a difference).
+            name: reading.deviceLabel ?? "Peripheral \(reading.slot)",
             source: reading.source,
             firstSeen: reading.timestamp,
             lastSeen: reading.timestamp,

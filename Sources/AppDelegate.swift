@@ -8,8 +8,9 @@ import AppKit
 ///
 /// Also manages the dock icon visibility based on the `hideDockWhenNoWindows`
 /// user preference.
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    nonisolated func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
 
@@ -30,13 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateActivationPolicy()
     }
 
-    deinit {
+    nonisolated deinit {
         NotificationCenter.default.removeObserver(self)
     }
 
     @objc private func windowsChanged(_ notification: Notification) {
         // Defer so the window state is fully applied before we inspect it.
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             self?.updateActivationPolicy()
         }
     }

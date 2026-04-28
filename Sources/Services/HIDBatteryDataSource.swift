@@ -1,6 +1,6 @@
 import Foundation
-import IOKit
-import IOKit.hid
+@preconcurrency import IOKit
+@preconcurrency import IOKit.hid
 
 /// Reads per-peripheral battery levels, metadata, and layer state from any ZMK
 /// dongle running the `zmk-battery-monitor-firmware` module. Matches USB HID
@@ -66,13 +66,27 @@ final class HIDBatteryDataSource: BatteryDataSource {
                 return
             }
 
+            // Wrap the captures so the @Sendable onTermination closure
+            // accepts them; manager and unmanaged are pointer-style values
+            // we manage manually, so silencing the Sendable check is sound.
+            let teardown = HIDTeardownBox(manager: manager, unmanaged: unmanaged)
             continuation.onTermination = { _ in
-                IOHIDManagerUnscheduleFromRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
-                IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
-                unmanaged.release()
+                IOHIDManagerUnscheduleFromRunLoop(teardown.manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+                IOHIDManagerClose(teardown.manager, IOOptionBits(kIOHIDOptionsTypeNone))
+                teardown.unmanaged.release()
             }
         }
     }
+}
+
+/// Manually-managed pointers passed to the AsyncStream's @Sendable
+/// onTermination closure. Marked unchecked-Sendable because we own the
+/// memory lifecycle ourselves; IOHIDManager is a CoreFoundation reference
+/// and Unmanaged is a raw pointer wrapper — neither needs Swift's
+/// Sendable verification.
+private struct HIDTeardownBox: @unchecked Sendable {
+    let manager: IOHIDManager
+    let unmanaged: Unmanaged<HIDContext>
 }
 
 /// Identity of the dongle (keyboard) extracted from IOKit device properties.
@@ -189,7 +203,9 @@ private final class HIDContext {
             keyboardVendorID: identity.vendorID,
             keyboardProductID: identity.productID,
             slot: slot,
-            deviceLabel: labels[cacheKey(identity: identity, slot: slot)] ?? "Peripheral \(slot)",
+            // Pass nil when the firmware hasn't yet advertised a side label
+            // for this slot; the manager handles the default.
+            deviceLabel: labels[cacheKey(identity: identity, slot: slot)],
             percent: percent,
             isCharging: false,
             timestamp: timestamp,

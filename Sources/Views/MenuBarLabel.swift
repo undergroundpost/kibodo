@@ -55,6 +55,10 @@ struct MenuBarLabel: View {
         }
         .padding(.vertical, 2)
         .environment(\.colorScheme, colorScheme)
+        // Kill any implicit SwiftUI animation: ImageRenderer rasterizes one
+        // size-stable image at a time, so any inter-frame interpolation just
+        // shows up as visual jitter when layer text resizes the pill.
+        .transaction { $0.animation = nil }
     }
 
     @ViewBuilder
@@ -119,9 +123,14 @@ struct MenuBarLabel: View {
 
     @ViewBuilder
     private func badge(_ text: String) -> some View {
+        // Monospaced design keeps every char the same width, so changing
+        // layers (BASE → NUMPAD) and changing battery digits (5% → 100%)
+        // grow/shrink the pill in clean, uniform increments instead of
+        // jumping by uneven amounts.
+        let font = Font.system(size: 11, weight: .semibold, design: .monospaced)
         if filledBadges {
             Text(text)
-                .font(.system(size: 11, weight: .semibold))
+                .font(font)
                 .foregroundStyle(pillForeground)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)
@@ -131,7 +140,7 @@ struct MenuBarLabel: View {
                 )
         } else {
             Text(text)
-                .font(.system(size: 11, weight: .semibold))
+                .font(font)
                 .foregroundStyle(foreground)
         }
     }

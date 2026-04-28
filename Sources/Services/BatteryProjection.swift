@@ -60,16 +60,18 @@ extension BatteryProjection {
 }
 
 extension Device {
-    /// Projects time remaining via **linear regression** over the last
-    /// `windowHours` of samples. This is robust to single-sample noise
-    /// (which the previous "last monotonic run" approach handled poorly).
+    /// Projects time remaining via **linear regression** over the current
+    /// discharge cycle (samples after the most recent confirmed charge).
     ///
     /// Algorithm:
-    /// 1. Take all samples in the window.
-    /// 2. Detect charge events (sample where percent rose by ≥ 5% from the
-    ///    previous sample). If any exist, discard everything at or before the
-    ///    last charge event — we only care about the current discharge cycle.
-    /// 3. Fit a least-squares line to the remaining (time, percent) points.
+    /// 1. Determine the cutoff: the later of (a) `windowHours` ago, or (b)
+    ///    the end of the most recent confirmed charge event. Confirmed
+    ///    charges come from `chargeEvents()`'s strict detector — a sustained
+    ///    ramp across consecutive connected samples — so single-sample
+    ///    glitches (firmware sleep-recovery spikes, ADC noise) do **not**
+    ///    truncate the discharge segment.
+    /// 2. Take samples after the cutoff.
+    /// 3. Fit a least-squares line to (time, percent).
     /// 4. Drain rate = –slope (in %/hour). A positive rate means draining.
     /// 5. Remaining = currentPercent / rate.
     ///
@@ -77,24 +79,23 @@ extension Device {
     /// explain why.
     func projection(windowHours: Double = 24, now: Date = .now) -> BatteryProjection {
         let windowStart = now.addingTimeInterval(-windowHours * 3600)
-        let windowed = samples
-            .filter { $0.timestamp >= windowStart }
+
+        // Use the strict charge detector to find where the current discharge
+        // segment starts. A confirmed-charge end after windowStart trims the
+        // window forward; otherwise windowStart wins. This is the same
+        // criterion `averageLifetimeHours` uses, so both stats agree on what
+        // counts as "the current discharge."
+        let confirmedChargeEnd = chargeEvents().last(where: { $0.isConfirmed })?.end
+        let cutoff: Date
+        if let chargeEnd = confirmedChargeEnd {
+            cutoff = Swift.max(chargeEnd, windowStart)
+        } else {
+            cutoff = windowStart
+        }
+
+        let relevant = samples
+            .filter { $0.timestamp >= cutoff }
             .sorted { $0.timestamp < $1.timestamp }
-
-        guard windowed.count >= 2 else {
-            return .insufficient(.notEnoughSamples)
-        }
-
-        // Walk forward to find the last charge event; only keep samples after
-        // it. A charge event is a ≥ 5% single-step rise.
-        let chargeRiseThreshold = 5
-        var startIdx = 0
-        for i in 1..<windowed.count {
-            if windowed[i].percent - windowed[i - 1].percent >= chargeRiseThreshold {
-                startIdx = i
-            }
-        }
-        let relevant = Array(windowed[startIdx...])
 
         guard relevant.count >= 2,
               let first = relevant.first,

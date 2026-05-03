@@ -4,6 +4,9 @@ DerivedData/
 *.xcodeproj/
 *.xcworkspace/
 
+# Release artifacts (uploaded to GitHub Releases, not committed)
+dist/
+
 # Swift Package Manager
 .swiftpm/
 .build/
